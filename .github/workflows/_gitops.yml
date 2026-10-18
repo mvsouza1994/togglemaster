@@ -1,0 +1,59 @@
+# Workflow reutilizavel: ultimo passo do CI (GitOps).
+# Troca a imagem no gitops/services/<servico>/deployment.yaml pela que acabou de ser
+# publicada e faz commit/push na main. O ArgoCD ve o commit e sincroniza o cluster.
+#
+# Nao gera loop: o commit so mexe em gitops/ (fora dos 'paths' dos workflows),
+# leva [skip ci] e e feito com o GITHUB_TOKEN (que nao dispara workflows).
+name: _gitops
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: "Nome do servico (pasta em gitops/services/)"
+        required: true
+        type: string
+      image:
+        description: "Imagem completa com a tag nova"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-manifest:
+    name: GitOps - atualizar tag da imagem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Atualizar deployment.yaml e fazer push
+        env:
+          SERVICE: ${{ inputs.service }}
+          IMAGE: ${{ inputs.image }}
+        run: |
+          FILE="gitops/services/${SERVICE}/deployment.yaml"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Ate 5 tentativas: os 5 servicos podem terminar juntos e brigar pelo push.
+          for i in 1 2 3 4 5; do
+            git fetch origin main && git reset --hard origin/main
+            IMAGE="$IMAGE" yq -i '.spec.template.spec.containers[0].image = strenv(IMAGE)' "$FILE"
+            if git diff --quiet; then
+              echo "Manifesto ja aponta para $IMAGE"; exit 0
+            fi
+            git add "$FILE"
+            git commit -m "deploy(${SERVICE}): ${IMAGE##*:} [skip ci]"
+            if git push origin HEAD:main; then
+              echo "Manifesto atualizado: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "push rejeitado (tentativa $i), tentando de novo..."
+            sleep $((RANDOM % 10 + 5))
+          done
+          echo "nao foi possivel atualizar o manifesto"; exit 1

@@ -1,0 +1,23 @@
+# metrics-server via Helm: necessario para o HPA ler CPU dos pods.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-metrics-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/metrics-server/
+    chart: metrics-server
+    targetRevision: 3.14.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
