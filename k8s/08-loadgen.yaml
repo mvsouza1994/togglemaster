@@ -1,0 +1,39 @@
+# Gerador de carga para demonstrar o HPA.
+# Roda DENTRO do cluster para nao depender da banda da maquina local.
+# No video da pra usar 'hey' apontando para o NLB - o efeito no HPA e o mesmo:
+#   hey -z 120s -c 50 "http://<NLB>/evaluate?user_id=u1&flag_name=enable-new-dashboard"
+#
+# Efeito colateral util: cada /evaluate publica um evento no SQS, entao esta
+# mesma carga tambem enche a fila e exercita o HPA do analytics-service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+  namespace: evaluation
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: loadgen
+  template:
+    metadata:
+      labels:
+        app: loadgen
+    spec:
+      containers:
+        - name: loadgen
+          image: curlimages/curl:8.10.1
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while true; do
+                curl -s -o /dev/null --max-time 5 \
+                  "http://evaluation-service.evaluation.svc.cluster.local:8004/evaluate?user_id=load-$$RANDOM&flag_name=enable-new-dashboard"
+              done
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi

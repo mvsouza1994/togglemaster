@@ -1,0 +1,47 @@
+# Escalabilidade no caminho da Opcao A (AWS Academy): HPA por CPU.
+#
+# Por que nao KEDA: KEDA escalaria o analytics-service diretamente pelo
+# queueDepth do SQS (e ate de 0 para N), mas exige IRSA -> criacao de IAM role,
+# bloqueada no Learner Lab. O workaround: a fila enche -> o worker processa mais
+# mensagens -> a CPU sobe -> o HPA adiciona replicas.
+# Trade-off honesto: CPU e um proxy INDIRETO da profundidade da fila e nao escala a zero.
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: evaluation-hpa
+  namespace: evaluation
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: evaluation-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: analytics-hpa
+  namespace: analytics
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analytics-service
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
