@@ -1,0 +1,5 @@
+# normaliza fim de linha (os arquivos da Fase 2 vieram com CRLF do Windows)
+* text=auto eol=lf
+*.zip binary
+*.png binary
+*.pdf binary

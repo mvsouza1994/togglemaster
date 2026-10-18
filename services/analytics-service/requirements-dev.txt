@@ -1,0 +1,5 @@
+# Ferramentas de teste, lint e SAST (somente CI/dev, nao vao para a imagem)
+-r requirements.txt
+bandit==1.9.4
+flake8==7.4.1
+pytest==9.1.1

@@ -7,11 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/go-redis/redis/v8"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 // Contexto global para o Redis
@@ -20,7 +19,7 @@ var ctx = context.Background()
 // App struct para injeção de dependência
 type App struct {
 	RedisClient         *redis.Client
-	SqsSvc              *sqs.SQS
+	SqsSvc              sqsAPI
 	SqsQueueURL         string
 	HttpClient          *http.Client
 	FlagServiceURL      string
@@ -62,7 +61,7 @@ func main() {
 	}
 
 	// --- Inicializa Clientes ---
-	
+
 	// Cliente Redis
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
@@ -74,14 +73,15 @@ func main() {
 	}
 	log.Println("Conectado ao Redis com sucesso!")
 
-	// Cliente SQS (AWS SDK)
-	var sqsSvc *sqs.SQS
+	// Cliente SQS (AWS SDK v2). As credenciais vem da cadeia padrao
+	// (variaveis de ambiente, ~/.aws ou IMDS do no EKS com a LabRole).
+	var sqsSvc sqsAPI
 	if sqsQueueURL != "" {
-		sess, err := session.NewSession(&aws.Config{Region: aws.String(awsRegion)})
+		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(awsRegion))
 		if err != nil {
-			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
+			log.Fatalf("Não foi possível carregar a configuração AWS: %v", err)
 		}
-		sqsSvc = sqs.New(sess)
+		sqsSvc = sqs.NewFromConfig(cfg)
 		log.Println("Cliente SQS inicializado com sucesso.")
 	}
 
@@ -106,7 +106,16 @@ func main() {
 	mux.HandleFunc("/evaluate", app.evaluationHandler)
 
 	log.Printf("Serviço de Avaliação (Go) rodando na porta %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	// http.Server com timeouts (evita conexoes lentas segurando o servidor)
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }

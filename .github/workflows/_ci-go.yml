@@ -1,0 +1,83 @@
+# Workflow reutilizavel para os servicos em Go (auth, evaluation).
+# Etapas encadeadas: build + testes -> lint -> seguranca (SAST + SCA).
+name: _ci-go
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: "Pasta do servico dentro de services/ (ex.: auth-service)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  GOLANGCI_LINT_VERSION: v2.15.0
+  GOSEC_VERSION: v2.29.0
+
+jobs:
+  build-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: services/${{ inputs.service }}/go.mod
+          cache-dependency-path: services/${{ inputs.service }}/go.sum
+      - name: Verificar dependencias (go.sum)
+        run: go mod verify
+      - name: Build
+        run: go build ./...
+      - name: Testes unitarios
+        run: go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
+
+  lint:
+    name: Lint / Static Analysis
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: services/${{ inputs.service }}/go.mod
+          cache-dependency-path: services/${{ inputs.service }}/go.sum
+      - name: go vet
+        working-directory: services/${{ inputs.service }}
+        run: go vet ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: services/${{ inputs.service }}
+
+  security:
+    name: Security Scan (SAST + SCA)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: services/${{ inputs.service }}/go.mod
+          cache-dependency-path: services/${{ inputs.service }}/go.sum
+      - name: SAST - gosec
+        working-directory: services/${{ inputs.service }}
+        # G706 desligado pelo mesmo motivo do .golangci.yml (logs usam %q)
+        run: |
+          go install "github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}"
+          gosec -exclude=G706 -exclude-dir=.git ./...
+      - name: SCA - Trivy fs (relatorio HIGH, nao bloqueia)
+        run: >
+          docker run --rm -v "$PWD/services/${{ inputs.service }}:/src" "${TRIVY_IMAGE}"
+          fs --scanners vuln,secret --severity HIGH --exit-code 0 /src
+      - name: SCA - Trivy fs (CRITICAL bloqueia o pipeline)
+        run: >
+          docker run --rm -v "$PWD/services/${{ inputs.service }}:/src" "${TRIVY_IMAGE}"
+          fs --scanners vuln,secret --severity CRITICAL --exit-code 1 /src

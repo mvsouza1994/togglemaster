@@ -1,13 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
+
+// sqsAPI e o pedaco do cliente SQS que usamos (permite mock nos testes)
+type sqsAPI interface {
+	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
+}
 
 // Evento que será enviado para a fila
 type EvaluationEvent struct {
@@ -21,7 +27,7 @@ type EvaluationEvent struct {
 func (a *App) sendEvaluationEvent(userID, flagName string, result bool) {
 	// Se a URL da fila não foi configurada, apenas loga localmente e sai.
 	if a.SqsSvc == nil || a.SqsQueueURL == "" {
-		log.Printf("[SQS_DISABLED] Evento: User '%s', Flag '%s', Result '%t'", userID, flagName, result)
+		log.Printf("[SQS_DISABLED] Evento: User %q, Flag %q, Result '%t'", userID, flagName, result)
 		return
 	}
 
@@ -39,7 +45,7 @@ func (a *App) sendEvaluationEvent(userID, flagName string, result bool) {
 	}
 
 	// Envia a mensagem
-	_, err = a.SqsSvc.SendMessage(&sqs.SendMessageInput{
+	_, err = a.SqsSvc.SendMessage(ctx, &sqs.SendMessageInput{
 		MessageBody: aws.String(string(body)),
 		QueueUrl:    aws.String(a.SqsQueueURL),
 	})
@@ -47,6 +53,6 @@ func (a *App) sendEvaluationEvent(userID, flagName string, result bool) {
 	if err != nil {
 		log.Printf("Erro ao enviar mensagem para SQS: %v", err)
 	} else {
-		log.Printf("Evento de avaliação enviado para SQS (Flag: %s)", flagName)
+		log.Printf("Evento de avaliação enviado para SQS (Flag: %q)", flagName)
 	}
 }
