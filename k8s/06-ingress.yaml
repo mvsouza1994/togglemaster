@@ -1,0 +1,101 @@
+# Um Ingress por namespace (o backend Service e um objeto namespaced).
+# Todos usam a mesma ingressClass "nginx" -> mesmo NLB.
+
+# /auth/... -> auth-service (precisa de rewrite: as rotas da app sao /validate, /admin/keys)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-ingress
+  namespace: auth
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001
+---
+# /flags -> flag-service (a rota da app ja e /flags, sem rewrite)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flags-ingress
+  namespace: flags
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /flags
+            pathType: Prefix
+            backend:
+              service:
+                name: flag-service
+                port:
+                  number: 8002
+---
+# /rules -> targeting-service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: targeting-ingress
+  namespace: targeting
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /rules
+            pathType: Prefix
+            backend:
+              service:
+                name: targeting-service
+                port:
+                  number: 8003
+---
+# /evaluate -> evaluation-service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: evaluation-ingress
+  namespace: evaluation
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /evaluate
+            pathType: Prefix
+            backend:
+              service:
+                name: evaluation-service
+                port:
+                  number: 8004
+---
+# /analytics/... -> analytics-service (so o /health; o servico e um worker de fila)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: analytics-ingress
+  namespace: analytics
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /analytics(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 8005

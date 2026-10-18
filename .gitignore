@@ -1,0 +1,15 @@
+# segredos e endpoints do ambiente
+.env
+INFRA.md
+
+# Secrets do k8s: base64 NAO e criptografia. Gerado por scripts/gen-secrets.sh
+k8s/secrets.yaml
+
+# credenciais AWS (nunca commitar)
+.aws/
+*.pem
+*.ppk
+
+# artefatos
+*.log
+evidencias/*.png

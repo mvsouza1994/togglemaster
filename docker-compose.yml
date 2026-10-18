@@ -1,0 +1,202 @@
+# ToggleMaster - Tech Challenge Fase 2
+# 9 conteineres: 5 microsservicos + 4 data stores (2 PostgreSQL, 1 Redis, 1 DynamoDB Local)
+#
+# SQS nao tem equivalente local, entao o ambiente local usa a fila REAL da AWS.
+# As credenciais NAO ficam neste arquivo: montamos ~/.aws somente-leitura nos dois
+# servicos que falam com a AWS (evaluation e analytics).
+
+services:
+
+  # ============ DATA STORES (4) ============
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: tm-postgres-auth
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    volumes:
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/01-auth.sql:ro
+      - pgdata-auth:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Segunda instancia PostgreSQL: hospeda flags_db (padrao) e targeting_db
+  postgres-flags:
+    image: postgres:16-alpine
+    container_name: tm-postgres-flags
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flags_db
+    volumes:
+      - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/01-flags.sql:ro
+      - ./scripts/postgres-flags-init.sh:/docker-entrypoint-initdb.d/02-targeting.sh:ro
+      - ./targeting-service/db/init.sql:/schemas/targeting.sql:ro
+      - pgdata-flags:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flags_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: tm-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: tm-dynamodb-local
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  # ============ MICROSSERVICOS (5) ============
+
+  auth-service:
+    build: ./auth-service
+    image: togglemaster/auth-service:v1
+    container_name: tm-auth-service
+    environment:
+      PORT: "8001"
+      DATABASE_URL: "postgres://postgres:postgres@postgres-auth:5432/auth_db?sslmode=disable"
+      MASTER_KEY: "${MASTER_KEY}"
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  flag-service:
+    build: ./flag-service
+    image: togglemaster/flag-service:v1
+    container_name: tm-flag-service
+    environment:
+      PORT: "8002"
+      DATABASE_URL: "postgres://postgres:postgres@postgres-flags:5432/flags_db"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres-flags:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  targeting-service:
+    build: ./targeting-service
+    image: togglemaster/targeting-service:v1
+    container_name: tm-targeting-service
+    environment:
+      PORT: "8003"
+      DATABASE_URL: "postgres://postgres:postgres@postgres-flags:5432/targeting_db"
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres-flags:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  evaluation-service:
+    build: ./evaluation-service
+    image: togglemaster/evaluation-service:v1
+    container_name: tm-evaluation-service
+    environment:
+      PORT: "8004"
+      REDIS_URL: "redis://redis:6379"
+      FLAG_SERVICE_URL: "http://flag-service:8002"
+      TARGETING_SERVICE_URL: "http://targeting-service:8003"
+      SERVICE_API_KEY: "${SERVICE_API_KEY}"
+      AWS_SQS_URL: "${AWS_SQS_URL}"
+      AWS_REGION: "${AWS_REGION}"
+    volumes:
+      # credenciais temporarias do AWS Academy, somente-leitura
+      - "${AWS_SHARED_DIR}:/home/appuser/.aws:ro"
+    ports:
+      - "8004:8004"
+    depends_on:
+      redis:
+        condition: service_healthy
+      flag-service:
+        condition: service_healthy
+      targeting-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  analytics-service:
+    build: ./analytics-service
+    image: togglemaster/analytics-service:v1
+    container_name: tm-analytics-service
+    environment:
+      PORT: "8005"
+      AWS_SQS_URL: "${AWS_SQS_URL}"
+      AWS_REGION: "${AWS_REGION}"
+      AWS_DYNAMODB_TABLE: "${AWS_DYNAMODB_TABLE}"
+      # aponta SO o DynamoDB para o container local; o SQS continua indo p/ AWS real
+      AWS_ENDPOINT_URL_DYNAMODB: "http://dynamodb-local:8000"
+    volumes:
+      - "${AWS_SHARED_DIR}:/home/appuser/.aws:ro"
+    ports:
+      - "8005:8005"
+    depends_on:
+      dynamodb-local:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  pgdata-auth:
+  pgdata-flags:

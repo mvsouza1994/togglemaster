@@ -1,0 +1,6 @@
+.git
+README.md
+Dockerfile
+.dockerignore
+# go.sum do repositorio esta corrompido (conteudo do go.mod) -> regenerado no build
+go.sum
