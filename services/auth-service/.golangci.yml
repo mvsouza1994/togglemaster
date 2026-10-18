@@ -1,0 +1,21 @@
+# Configuracao do golangci-lint (v2): linters padrao + seguranca
+version: "2"
+linters:
+  enable:
+    - gosec
+    - bodyclose
+    - errorlint
+  settings:
+    gosec:
+      excludes:
+        # G706 (log injection): os valores vindos da requisicao sao logados com %q,
+        # que escapa quebras de linha; a analise de taint nao reconhece isso.
+        - G706
+  exclusions:
+    rules:
+      # testes podem ignorar alguns erros de proposito
+      - path: _test\.go
+        linters: [errcheck, gosec]
+formatters:
+  enable:
+    - gofmt

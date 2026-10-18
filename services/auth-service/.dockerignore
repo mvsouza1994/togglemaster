@@ -3,3 +3,5 @@ README.md
 db
 Dockerfile
 .dockerignore
+.golangci.yml
+*_test.go

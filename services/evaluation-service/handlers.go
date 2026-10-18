@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -15,7 +16,7 @@ type EvaluationResponse struct {
 func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,11 +35,12 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := a.getDecision(userID, flagName)
 	if err != nil {
 		// Se o erro for "não encontrado", retornamos 'false' (comportamento seguro)
-		if _, ok := err.(*NotFoundError); ok {
+		var nf *NotFoundError
+		if errors.As(err, &nf) {
 			result = false
 		} else {
 			// Outros erros (serviços offline, etc)
-			log.Printf("Erro ao avaliar flag '%s': %v", flagName, err)
+			log.Printf("Erro ao avaliar flag %q: %v", flagName, err)
 			http.Error(w, `{"error": "Erro interno ao avaliar a flag"}`, http.StatusBadGateway)
 			return
 		}
@@ -50,7 +52,7 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 4. Retornar a resposta
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(EvaluationResponse{
+	_ = json.NewEncoder(w).Encode(EvaluationResponse{
 		FlagName: flagName,
 		UserID:   userID,
 		Result:   result,

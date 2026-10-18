@@ -13,3 +13,11 @@ k8s/secrets.yaml
 # artefatos
 *.log
 evidencias/*.png
+
+# testes / cache
+__pycache__/
+.pytest_cache/
+coverage.out
+# binarios gerados por go build
+services/auth-service/auth-service
+services/evaluation-service/evaluation-service

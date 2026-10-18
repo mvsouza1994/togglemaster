@@ -1,0 +1,85 @@
+# Workflow reutilizavel para os servicos em Python (flag, targeting, analytics).
+# Etapas encadeadas: build + testes -> lint -> seguranca (SAST + SCA).
+name: _ci-python
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        description: "Pasta do servico dentro de services/ (ex.: flag-service)"
+        required: true
+        type: string
+      python-version:
+        required: false
+        type: string
+        default: "3.13"
+
+permissions:
+  contents: read
+
+env:
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+
+jobs:
+  build-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+          cache-dependency-path: services/${{ inputs.service }}/requirements*.txt
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      - name: Compilar (checagem de sintaxe)
+        run: python -m compileall -q app.py
+      - name: Testes unitarios
+        run: pytest -v
+
+  lint:
+    name: Lint / Static Analysis
+    needs: build-test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+          cache-dependency-path: services/${{ inputs.service }}/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: flake8
+        run: flake8 .
+
+  security:
+    name: Security Scan (SAST + SCA)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: pip
+          cache-dependency-path: services/${{ inputs.service }}/requirements*.txt
+      - name: SAST - bandit
+        working-directory: services/${{ inputs.service }}
+        run: |
+          pip install -r requirements-dev.txt
+          bandit -r . -x ./tests
+      - name: SCA - Trivy fs (relatorio HIGH, nao bloqueia)
+        run: >
+          docker run --rm -v "$PWD/services/${{ inputs.service }}:/src" "${TRIVY_IMAGE}"
+          fs --scanners vuln,secret --severity HIGH --exit-code 0 /src
+      - name: SCA - Trivy fs (CRITICAL bloqueia o pipeline)
+        run: >
+          docker run --rm -v "$PWD/services/${{ inputs.service }}:/src" "${TRIVY_IMAGE}"
+          fs --scanners vuln,secret --severity CRITICAL --exit-code 1 /src

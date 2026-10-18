@@ -1,0 +1,43 @@
+# CI/DevSecOps do evaluation-service
+name: ci-evaluation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - services/evaluation-service/**
+      - .github/workflows/ci-evaluation.yml
+      - .github/workflows/_ci-go.yml
+      - .github/workflows/_image.yml
+  push:
+    branches: [main]
+    paths:
+      - services/evaluation-service/**
+      - .github/workflows/ci-evaluation.yml
+      - .github/workflows/_ci-go.yml
+      - .github/workflows/_image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# um pipeline por branch; em PR cancela o anterior, na main deixa terminar
+concurrency:
+  group: ci-evaluation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_ci-go.yml
+    with:
+      service: evaluation-service
+
+  image:
+    needs: ci
+    uses: ./.github/workflows/_image.yml
+    with:
+      service: evaluation-service
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}

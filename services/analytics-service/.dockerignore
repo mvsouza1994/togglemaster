@@ -4,3 +4,8 @@ Dockerfile
 .dockerignore
 __pycache__
 *.pyc
+tests
+requirements-dev.txt
+.flake8
+.pytest_cache
+pytest.ini
