@@ -1,0 +1,52 @@
+# Cria/atualiza o schema do banco antes de cada sync (hook PreSync do ArgoCD).
+# O SQL e idempotente (CREATE ... IF NOT EXISTS), entao rodar de novo nao quebra nada.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-db-migrate
+  namespace: auth
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70 # usuario postgres da imagem alpine
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: postgres:17-alpine
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /sql/schema.sql
+              # Semeia a chave de servico usada pelo evaluation-service (sem chamar /admin/keys).
+              # Guarda so o hash SHA-256, igual ao auth-service faz (key.go).
+              psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v key="$SERVICE_API_KEY" <<'SQL'
+              INSERT INTO api_keys (name, key_hash)
+              VALUES ('evaluation-service', encode(sha256(convert_to(:'key', 'UTF8')), 'hex'))
+              ON CONFLICT (key_hash) DO NOTHING;
+              SQL
+              echo "schema ok"
+          envFrom:
+            - secretRef:
+                name: auth-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+      volumes:
+        - name: sql
+          configMap:
+            name: auth-db-schema

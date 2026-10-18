@@ -1,0 +1,27 @@
+# Projeto dos microsservicos: so pode ler este repositorio e so pode criar
+# recursos nos 5 namespaces da aplicacao.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: togglemaster
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  description: Microsservicos do ToggleMaster
+  sourceRepos:
+    - https://github.com/mvsouza1994/togglemaster.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: auth
+    - server: https://kubernetes.default.svc
+      namespace: flags
+    - server: https://kubernetes.default.svc
+      namespace: targeting
+    - server: https://kubernetes.default.svc
+      namespace: evaluation
+    - server: https://kubernetes.default.svc
+      namespace: analytics
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

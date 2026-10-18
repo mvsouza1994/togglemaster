@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/mvsouza1994/togglemaster.git
+    targetRevision: main
+    path: gitops/services/auth-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: auth
+  syncPolicy:
+    automated:
+      prune: true    # remove do cluster o que sair do git
+      selfHeal: true # desfaz alteracao manual (kubectl edit/apply)
+    syncOptions:
+      - CreateNamespace=true # o namespace precisa existir antes do Job PreSync
+    retry: # ex.: Secret ainda nao criado ou banco subindo
+      limit: 10
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m

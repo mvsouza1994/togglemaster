@@ -1,0 +1,23 @@
+# App of Apps: a UNICA coisa aplicada a mao (uma vez, logo depois de instalar o ArgoCD).
+# Ela le gitops/argocd/apps/ e cria todas as outras Applications.
+#   kubectl apply -n argocd -f gitops/argocd/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: togglemaster-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mvsouza1994/togglemaster.git
+    targetRevision: main
+    path: gitops/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

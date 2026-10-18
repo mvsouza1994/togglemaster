@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evaluation-service
+  namespace: evaluation
+  labels:
+    app: evaluation-service
+spec:
+  # sem 'replicas': quem controla e o HPA (senao o ArgoCD briga com ele no selfHeal)
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: evaluation-service
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: evaluation-service
+          # A tag e atualizada pelo CI a cada push na main (v1.0.0-<sha>).
+          image: ghcr.io/mvsouza1994/togglemaster/evaluation-service:v1.0.0-0000000
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8004
+          # Credenciais AWS: nenhuma. O pod usa a LabRole do node via IMDS
+          # (launch template com hop limit 2, ver terraform/modules/eks).
+          envFrom:
+            - configMapRef:
+                name: evaluation-config
+            # Secret criado fora do git (Terraform / scripts/k8s-secrets.sh)
+            - secretRef:
+                name: evaluation-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: tmp
+          emptyDir: {}
