@@ -24,8 +24,11 @@ on:
         description: "Imagem completa publicada (vazio em PR)"
         value: ${{ jobs.docker.outputs.image-uri }}
 
+# Em workflow reutilizavel este bloco so pode REDUZIR o que o chamador deu;
+# sem packages: write aqui o push no GHCR e negado.
 permissions:
   contents: read
+  packages: write
 
 env:
   AWS_REGION: us-east-1
