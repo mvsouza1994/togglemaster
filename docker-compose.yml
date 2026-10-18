@@ -17,7 +17,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: auth_db
     volumes:
-      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/01-auth.sql:ro
+      - ./services/auth-service/db/init.sql:/docker-entrypoint-initdb.d/01-auth.sql:ro
       - pgdata-auth:/var/lib/postgresql/data
     ports:
       - "5432:5432"
@@ -37,9 +37,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: flags_db
     volumes:
-      - ./flag-service/db/init.sql:/docker-entrypoint-initdb.d/01-flags.sql:ro
+      - ./services/flag-service/db/init.sql:/docker-entrypoint-initdb.d/01-flags.sql:ro
       - ./scripts/postgres-flags-init.sh:/docker-entrypoint-initdb.d/02-targeting.sh:ro
-      - ./targeting-service/db/init.sql:/schemas/targeting.sql:ro
+      - ./services/targeting-service/db/init.sql:/schemas/targeting.sql:ro
       - pgdata-flags:/var/lib/postgresql/data
     ports:
       - "5433:5432"
@@ -73,7 +73,7 @@ services:
   # ============ MICROSSERVICOS (5) ============
 
   auth-service:
-    build: ./auth-service
+    build: ./services/auth-service
     image: togglemaster/auth-service:v1
     container_name: tm-auth-service
     environment:
@@ -94,7 +94,7 @@ services:
     restart: unless-stopped
 
   flag-service:
-    build: ./flag-service
+    build: ./services/flag-service
     image: togglemaster/flag-service:v1
     container_name: tm-flag-service
     environment:
@@ -117,7 +117,7 @@ services:
     restart: unless-stopped
 
   targeting-service:
-    build: ./targeting-service
+    build: ./services/targeting-service
     image: togglemaster/targeting-service:v1
     container_name: tm-targeting-service
     environment:
@@ -140,7 +140,7 @@ services:
     restart: unless-stopped
 
   evaluation-service:
-    build: ./evaluation-service
+    build: ./services/evaluation-service
     image: togglemaster/evaluation-service:v1
     container_name: tm-evaluation-service
     environment:
@@ -172,7 +172,7 @@ services:
     restart: unless-stopped
 
   analytics-service:
-    build: ./analytics-service
+    build: ./services/analytics-service
     image: togglemaster/analytics-service:v1
     container_name: tm-analytics-service
     environment:
