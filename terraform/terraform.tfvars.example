@@ -1,0 +1,10 @@
+# Copie para terraform.tfvars e ajuste se quiser. Todos os valores tem default.
+# terraform.tfvars esta no .gitignore.
+
+# region                   = "us-east-1"
+# kubernetes_version       = "1.34"
+# nodes_in_private_subnets = true   # false = sem NAT Gateway (mais barato, nodes em subnet publica)
+# node_instance_types      = ["t3.medium"]
+# node_desired_size        = 2
+# db_instance_class        = "db.t3.micro"
+# redis_node_type          = "cache.t3.micro"
