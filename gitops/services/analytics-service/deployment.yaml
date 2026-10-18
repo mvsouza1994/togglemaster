@@ -25,7 +25,7 @@ spec:
       containers:
         - name: analytics-service
           # A tag e atualizada pelo CI a cada push na main (v1.0.0-<sha>).
-          image: ghcr.io/mvsouza1994/togglemaster/analytics-service:v1.0.0-0000000
+          image: ghcr.io/mvsouza1994/togglemaster/analytics-service:v1.0.0-731df3f
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8005
