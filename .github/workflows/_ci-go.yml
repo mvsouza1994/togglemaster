@@ -16,7 +16,6 @@ permissions:
 env:
   TRIVY_IMAGE: aquasec/trivy:0.76.0
   GOLANGCI_LINT_VERSION: v2.15.0
-  GOSEC_VERSION: v2.29.0
 
 jobs:
   build-test:
@@ -67,12 +66,14 @@ jobs:
         with:
           go-version-file: services/${{ inputs.service }}/go.mod
           cache-dependency-path: services/${{ inputs.service }}/go.sum
+      # gosec rodando pelo golangci-lint: o binario avulso do gosec (v2.29) ainda nao
+      # le o formato de pacotes do Go 1.27. As regras (e a exclusao do G706) vem do .golangci.yml.
       - name: SAST - gosec
-        working-directory: services/${{ inputs.service }}
-        # G706 desligado pelo mesmo motivo do .golangci.yml (logs usam %q)
-        run: |
-          go install "github.com/securego/gosec/v2/cmd/gosec@${GOSEC_VERSION}"
-          gosec -exclude=G706 -exclude-dir=.git ./...
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: services/${{ inputs.service }}
+          args: --enable-only gosec
       - name: SCA - Trivy fs (relatorio HIGH, nao bloqueia)
         run: >
           docker run --rm -v "$PWD/services/${{ inputs.service }}:/src" "${TRIVY_IMAGE}"
