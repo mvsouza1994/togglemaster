@@ -41,6 +41,8 @@ Para o ECR é preciso: `terraform apply`, os secrets `AWS_ACCESS_KEY_ID` / `AWS_
 
 ## Instalação (uma vez por cluster)
 
+O workflow `terraform` (action `apply`) já faz tudo isso no fim, via `scripts/cluster-bootstrap.sh`. Para rodar à mão: `bash scripts/cluster-bootstrap.sh`. Os passos são:
+
 ```bash
 # 1. Secrets dos serviços (não ficam no git)
 bash scripts/k8s-secrets.sh
@@ -66,5 +68,5 @@ kubectl -n argocd port-forward svc/argocd-server 8080:443   # https://localhost:
 - **Segurança dos pods**: non-root (UID 10001), `readOnlyRootFilesystem`, sem capabilities, `seccomp RuntimeDefault`.
 - **Secrets fora do git**: `scripts/k8s-secrets.sh` lê os outputs do Terraform e aplica direto no cluster.
 - **ingress-nginx e metrics-server** como Applications Helm do ArgoCD, em vez de `kubectl apply` de URL.
-  - Antes do `terraform destroy`, apague a Application `platform-ingress-nginx` para remover o NLB.
+  - Antes do `terraform destroy`, apague a Application `togglemaster-root` (ela apaga as outras e o NLB em cascata). O workflow `terraform` (action `destroy`) já faz isso.
   - O projeto ingress-nginx foi descontinuado pela comunidade Kubernetes em 2026. Continua funcionando, mas não recebe mais correções.

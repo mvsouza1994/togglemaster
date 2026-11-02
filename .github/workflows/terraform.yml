@@ -100,6 +100,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
         run: terraform apply tfplan
 
+      # Pos-apply: secrets dos servicos, ArgoCD e App of Apps (o resto vem do git)
+      - name: Bootstrap do cluster (secrets + ArgoCD)
+        if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
+        working-directory: .
+        run: bash scripts/cluster-bootstrap.sh
+
       - name: Outputs
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
         run: |
@@ -111,17 +117,22 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # O NLB do ingress-nginx e criado pelo Kubernetes, fora do Terraform, e trava a
-      # remocao da VPC. Apaga o LoadBalancer antes do destroy se o cluster existir.
-      - name: Remover LoadBalancers do Kubernetes
+      # remocao da VPC. Apaga a App of Apps primeiro (senao ela recria as Applications),
+      # depois qualquer Service LoadBalancer que sobrar, e espera o NLB sumir.
+      - name: Remover apps do ArgoCD e LoadBalancers
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
         run: |
           CLUSTER=$(terraform output -raw cluster_name 2>/dev/null || true)
           if [ -n "$CLUSTER" ] && aws eks describe-cluster --name "$CLUSTER" >/dev/null 2>&1; then
             aws eks update-kubeconfig --name "$CLUSTER" --region "$AWS_REGION"
-            kubectl delete application -n argocd platform-ingress-nginx --ignore-not-found --wait=false || true
+            kubectl delete application -n argocd togglemaster-root --ignore-not-found --timeout=5m || true
             kubectl get svc -A -o jsonpath='{range .items[?(@.spec.type=="LoadBalancer")]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' |
               while read -r ns name; do kubectl delete svc -n "$ns" "$name" --ignore-not-found || true; done
-            sleep 60
+            VPC=$(terraform output -raw vpc_id)
+            for i in $(seq 1 30); do
+              n=$(aws elbv2 describe-load-balancers --query "length(LoadBalancers[?VpcId=='$VPC'])" --output text)
+              echo "load balancers na VPC: $n"; [ "$n" = "0" ] && break; sleep 10
+            done
           fi
 
       - name: terraform destroy
