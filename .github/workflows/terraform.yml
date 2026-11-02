@@ -70,17 +70,21 @@ jobs:
       - name: terraform fmt
         run: terraform fmt -check -recursive
 
-      # O bucket do state precisa existir antes do init. No Academy a conta pode ser
-      # renovada, entao cria o bucket (terraform/bootstrap) se ele nao existir.
-      - name: Bucket do state (bootstrap se nao existir)
+      # O bucket do state precisa existir antes do init. Feito com AWS CLI porque no
+      # Academy o provider aws do Terraform falha ao criar bucket (a SCP do lab nega
+      # s3:GetBucketObjectLockConfiguration, que o provider le apos criar). Idempotente.
+      - name: Bucket do state (cria se nao existir)
         run: |
           if aws s3api head-bucket --bucket "$STATE_BUCKET" 2>/dev/null; then
             echo "bucket $STATE_BUCKET ja existe"
           else
-            cd bootstrap
-            terraform init
-            terraform apply -auto-approve -var "bucket_name=$STATE_BUCKET"
+            aws s3api create-bucket --bucket "$STATE_BUCKET" --region "$AWS_REGION"
           fi
+          aws s3api put-public-access-block --bucket "$STATE_BUCKET" --public-access-block-configuration \
+            BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+          aws s3api put-bucket-versioning --bucket "$STATE_BUCKET" --versioning-configuration Status=Enabled
+          aws s3api put-bucket-encryption --bucket "$STATE_BUCKET" --server-side-encryption-configuration \
+            '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
       - name: terraform init
         run: terraform init
