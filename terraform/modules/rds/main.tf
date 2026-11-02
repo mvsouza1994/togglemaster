@@ -18,10 +18,11 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "postgres" {
-  for_each = toset(var.allowed_security_group_ids)
+  # count (e nao for_each): o ID do SG so existe apos o apply, mas o tamanho da lista e conhecido no plan
+  count = length(var.allowed_security_group_ids)
 
   security_group_id            = aws_security_group.this.id
-  referenced_security_group_id = each.value
+  referenced_security_group_id = var.allowed_security_group_ids[count.index]
   ip_protocol                  = "tcp"
   from_port                    = 5432
   to_port                      = 5432
