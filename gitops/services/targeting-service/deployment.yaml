@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: targeting-service
-          image: ghcr.io/mvsouza1994/togglemaster/targeting-service:v1.0.0-c9efc18
+          image: ghcr.io/mvsouza1994/togglemaster/targeting-service:v1.0.0-c399221
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8003
