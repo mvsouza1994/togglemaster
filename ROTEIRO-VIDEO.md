@@ -96,7 +96,7 @@ O PR roda de novo e fica verde. Em PR o job de imagem faz build e scan, mas **n�
 ### 2.3 Merge
 
 Faça o merge do PR. O merge gera um commit novo na `main`, e portanto uma tag de imagem nova.
-Use (botão **Squash and merge**, ou `gh pr merge --squash --delete-branch`).
+Use o botão **Squash and merge** ou `gh pr merge --squash --delete-branch`.
 
 ---
 
