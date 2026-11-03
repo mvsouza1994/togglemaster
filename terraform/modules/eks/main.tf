@@ -72,6 +72,9 @@ resource "aws_eks_node_group" "this" {
   node_role_arn   = var.role_arn
   subnet_ids      = var.node_subnet_ids
 
+  # nodes acompanham a versao do cluster (sem isso ficam na versao antiga apos upgrade)
+  version = aws_eks_cluster.this.version
+
   ami_type       = "AL2023_x86_64_STANDARD"
   capacity_type  = var.node_capacity_type
   instance_types = var.node_instance_types

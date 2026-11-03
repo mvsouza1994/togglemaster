@@ -24,7 +24,7 @@ terraform/
 | Módulo | Recursos |
 |---|---|
 | network | VPC `10.0.0.0/16`, 2 subnets públicas, 2 privadas, Internet Gateway, 1 NAT Gateway, route tables |
-| eks | Cluster `togglemaster` (K8s 1.34), node group 2× `t3.medium` (min 1, max 4) em subnet privada |
+| eks | Cluster `togglemaster` (K8s 1.36), node group 2× `t3.medium` (min 1, max 4) em subnet privada |
 | rds | `togglemaster-auth-db`, `togglemaster-flags-db`, `togglemaster-targeting-db` (PostgreSQL 17, `db.t3.micro`) |
 | elasticache | `togglemaster-redis` (`cache.t3.micro`) |
 | dynamodb | `ToggleMasterAnalytics` (on-demand, chave `event_id`) |
