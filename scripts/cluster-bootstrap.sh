@@ -1,13 +1,4 @@
 #!/bin/bash
-# Tudo o que precisa acontecer no cluster depois do "terraform apply". Idempotente:
-# pode rodar de novo a qualquer momento (ex.: a cada recriacao do ambiente).
-#
-#   1. kubeconfig do cluster
-#   2. Secrets dos 5 servicos (scripts/k8s-secrets.sh, a partir dos outputs do Terraform)
-#   3. ArgoCD via Helm
-#   4. App of Apps (gitops/argocd/root.yaml): o ArgoCD cria todo o resto a partir do git
-#
-# Uso: bash scripts/cluster-bootstrap.sh   (roda tambem no workflow terraform, apos o apply)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

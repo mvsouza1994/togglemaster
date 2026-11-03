@@ -1,13 +1,4 @@
-# ToggleMaster - Tech Challenge Fase 2
-# 9 conteineres: 5 microsservicos + 4 data stores (2 PostgreSQL, 1 Redis, 1 DynamoDB Local)
-#
-# SQS nao tem equivalente local, entao o ambiente local usa a fila REAL da AWS.
-# As credenciais NAO ficam neste arquivo: montamos ~/.aws somente-leitura nos dois
-# servicos que falam com a AWS (evaluation e analytics).
-
 services:
-
-  # ============ DATA STORES (4) ============
 
   postgres-auth:
     image: postgres:16-alpine
@@ -28,7 +19,6 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Segunda instancia PostgreSQL: hospeda flags_db (padrao) e targeting_db
   postgres-flags:
     image: postgres:16-alpine
     container_name: tm-postgres-flags
@@ -69,8 +59,6 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-
-  # ============ MICROSSERVICOS (5) ============
 
   auth-service:
     build: ./services/auth-service
@@ -152,7 +140,6 @@ services:
       AWS_SQS_URL: "${AWS_SQS_URL}"
       AWS_REGION: "${AWS_REGION}"
     volumes:
-      # credenciais temporarias do AWS Academy, somente-leitura
       - "${AWS_SHARED_DIR}:/home/appuser/.aws:ro"
     ports:
       - "8004:8004"
@@ -180,7 +167,6 @@ services:
       AWS_SQS_URL: "${AWS_SQS_URL}"
       AWS_REGION: "${AWS_REGION}"
       AWS_DYNAMODB_TABLE: "${AWS_DYNAMODB_TABLE}"
-      # aponta SO o DynamoDB para o container local; o SQS continua indo p/ AWS real
       AWS_ENDPOINT_URL_DYNAMODB: "http://dynamodb-local:8000"
     volumes:
       - "${AWS_SHARED_DIR}:/home/appuser/.aws:ro"

@@ -1,9 +1,4 @@
 #!/bin/bash
-# Leva o bloco de credenciais do AWS Academy do CLIPBOARD para ~/.aws/credentials.
-#
-# Uso: copie o bloco em AWS Details > AWS CLI > Show (as 4 linhas, comecando em
-# [default]) e rode este script. Os valores vao do clipboard direto para o
-# arquivo; nada e impresso na tela.
 set -uo pipefail
 DEST="$HOME/.aws/credentials"
 TMP=$(mktemp)

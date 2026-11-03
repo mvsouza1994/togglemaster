@@ -1,4 +1,3 @@
-# Um namespace por microsservico (requisito do enunciado)
 apiVersion: v1
 kind: Namespace
 metadata:

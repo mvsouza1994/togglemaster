@@ -1,11 +1,4 @@
 #!/bin/bash
-# Provisiona TODA a infra AWS do ToggleMaster do zero.
-# Reproduz exatamente o que foi feito em 2026-08-17.
-#
-# Pre-requisitos: lab do AWS Academy iniciado e ~/.aws/credentials atualizado.
-# Tempo total: ~20 min (a maior parte esperando EKS e RDS).
-#
-# Estrategia: dispara os recursos LENTOS primeiro e so espera no final.
 set -uo pipefail
 
 REGION=us-east-1

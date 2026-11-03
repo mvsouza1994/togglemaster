@@ -1,20 +1,8 @@
 #!/bin/bash
-# CONDUZ A APRESENTACAO INTEIRA.
-#
-# Voce roda UM comando e aperta Enter entre os blocos. O script mostra na tela
-# a fala de cada bloco (para voce ler em voz alta) e executa os comandos sozinho.
-#
-#   bash scripts/apresentar.sh
-#
-# Cobre os blocos B, D, E, F e G do roteiro. Os blocos A, C, H e I sao falados
-# (diagrama / console AWS / camera) e o script so avisa a hora de trocar de tela.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH"
 
-# Descobre a URL do NLB e a SERVICE_API_KEY lendo do proprio cluster.
-# Precisa ser dinamico: o deploy.sh gera uma chave NOVA a cada execucao, e o NLB
-# muda se o ingress-nginx for recriado. Nada hardcoded aqui envelhece.
 NLB="${NLB:-$(kubectl get svc -n ingress-nginx ingress-nginx-controller       -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)}"
 KEY="${KEY:-$(kubectl get secret evaluation-secrets -n evaluation       -o jsonpath='{.data.SERVICE_API_KEY}' 2>/dev/null | base64 -d)}"
 
@@ -28,11 +16,10 @@ if [ -z "$NLB" ] || [ -z "$KEY" ]; then
 fi
 LOCAL_KEY=$(grep '^SERVICE_API_KEY=' .env 2>/dev/null | cut -d= -f2)
 
-# ---------- aparencia ----------
 B=$'\e[1m'; D=$'\e[2m'; R=$'\e[0m'
 CY=$'\e[36m'; YL=$'\e[33m'; GR=$'\e[32m'; MG=$'\e[35m'
 
-bloco() {  # bloco <letra> <tempo> <titulo>
+bloco() {
   echo ""; echo ""
   echo "${CY}${B}════════════════════════════════════════════════════════════════════${R}"
   echo "${CY}${B}  BLOCO $1${R}  ${D}·  $2${R}"
@@ -40,7 +27,7 @@ bloco() {  # bloco <letra> <tempo> <titulo>
   echo "${CY}${B}════════════════════════════════════════════════════════════════════${R}"
 }
 
-fala() {  # fala <texto...>
+fala() {
   echo ""
   echo "${YL}${B}  ╭─ FALE ISTO ────────────────────────────────────────────────────${R}"
   while IFS= read -r linha; do
@@ -55,14 +42,14 @@ pausa() {
   echo ""
 }
 
-roda() {  # roda <comando...>
+roda() {
   echo "${GR}  \$ $*${R}"
   echo ""
   "$@"
   echo ""
 }
 
-roda_sh() {  # roda_sh <string de shell>  (quando precisa de pipe/aspas)
+roda_sh() {
   echo "${GR}  \$ $1${R}"
   echo ""
   eval "$1"
@@ -83,7 +70,6 @@ echo "  NLB:  ${D}$NLB${R}"
 echo "  Lab:  ${D}expira 20:12 BRT${R}"
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco A "0:00 – 2:30" "Arquitetura e os 3 data stores"
 echo "  ${D}Sem terminal. Mostre o diagrama do README.md e fale.${R}"
 fala "O ToggleMaster era um monolito na Fase 1. Aqui ele virou 5 microsservicos:
@@ -110,7 +96,6 @@ mil eventos em poucos minutos. Um db.t3.micro nao aguentaria; o DynamoDB
 on-demand escala sozinho."
 espera_tela "Troque para a janela do terminal"
 
-# ════════════════════════════════════════════════════════════════════
 bloco B "2:30 – 4:30" "Ambiente local — os 9 conteineres"
 fala "Sao 9 conteineres: os 5 microsservicos mais 4 data stores — duas instancias
 PostgreSQL, um Redis e o DynamoDB Local, exatamente como o enunciado pede."
@@ -151,7 +136,6 @@ roda_sh "aws dynamodb scan --table-name ToggleMasterAnalytics --endpoint-url htt
 echo "  ${D}Se perguntarem por que 2 PostgreSQL para 3 bancos: o enunciado fixa 2${R}"
 echo "  ${D}instancias locais. Na nuvem sao 3 RDS separados, como pedido.${R}"
 
-# ════════════════════════════════════════════════════════════════════
 bloco C "4:30 – 6:30" "Console AWS — a infraestrutura provisionada"
 echo "  ${D}Passe pelas 6 abas do navegador, ~20 s cada:${R}"
 echo ""
@@ -166,7 +150,6 @@ No AWS Academy nao e possivel criar IAM roles, entao essa role existente e
 passada explicitamente em cada recurso que precisa de permissao."
 espera_tela "Volte para o terminal"
 
-# ════════════════════════════════════════════════════════════════════
 bloco D "6:30 – 8:00" "Os 5 microsservicos como Pods"
 fala "O cluster tem dois nos t3.medium, criados pelo managed node group."
 pausa
@@ -187,7 +170,6 @@ fala "E aqui o Network Load Balancer que o Nginx Ingress Controller provisionou 
 pausa
 roda kubectl get svc -n ingress-nginx ingress-nginx-controller
 
-# ════════════════════════════════════════════════════════════════════
 bloco E "8:00 – 10:00" "Ingress funcionando — curl no Load Balancer"
 fala "Essas chamadas vao para o DNS do Network Load Balancer. O roteamento por path e
 do Ingress: /flags vai para o flag-service, /rules para o targeting-service,
@@ -209,7 +191,6 @@ for u in user-123 user-456 user-789 user-abc user-def user-ghi; do
 done
 echo ""
 
-# ════════════════════════════════════════════════════════════════════
 bloco F "10:00 – 13:30" "Carga no evaluation-service e o HPA escalando"
 echo "  ${D}Estado inicial dos HPAs (devem estar em 1 replica):${R}"
 echo ""
@@ -252,7 +233,6 @@ echo ""
 echo "  ${D}resumo da carga:${R}"
 tail -6 /tmp/carga-demo.log 2>/dev/null
 
-# ════════════════════════════════════════════════════════════════════
 bloco G "13:30 – 16:00" "SQS manual, analytics escalando e DynamoDB"
 fala "Alem da carga HTTP, o enunciado pede o envio manual de mensagens para o SQS.
 Vou publicar 2000 mensagens em lotes de 10, direto pela API da fila, sem passar
@@ -274,7 +254,6 @@ echo "  ${D}total de eventos na tabela:${R}"
 roda_sh "aws dynamodb scan --table-name ToggleMasterAnalytics --select COUNT --output text | awk '{s+=\$1} END {print \"  \"s\" eventos\"}'"
 espera_tela "Abra o console DynamoDB -> Explorar itens da tabela -> Executar e mostre os itens"
 
-# ════════════════════════════════════════════════════════════════════
 bloco H "16:00 – 19:00" "Desafios e justificativa da escalabilidade"
 echo "  ${D}Sem terminal. Fale olhando para a camera — 4 pontos, ~45 s cada.${R}"
 fala "1 — O codigo-fonte nao compilava.
@@ -314,7 +293,6 @@ CPU e um proxy indireto. Se o consumo fosse limitado por I/O em vez de CPU, o
 sinal seria fraco e o autoscaling reagiria mal. E nao ha escala a zero."
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco I "19:00 – 20:00" "Fechamento"
 fala "Recapitulando: 5 microsservicos conteinerizados com build multi-stage,
 infraestrutura provisionada na AWS com EKS, ECR, 3 RDS, ElastiCache, DynamoDB e

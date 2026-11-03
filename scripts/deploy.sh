@@ -1,15 +1,9 @@
 #!/bin/bash
-# Implanta o ToggleMaster num cluster EKS ja provisionado (ver scripts/provision.sh).
-# Cuida da ordem: auth-service primeiro, porque a SERVICE_API_KEY dos outros
-# servicos e criada chamando o /admin/keys dele.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
 MASTER_KEY="${MASTER_KEY:-tm-master-2f8a41d7c9be4a15}"
 
-# O registro do ECR muda a cada conta do Learner Lab. Reescreve as imagens dos
-# manifestos para a conta atual antes de aplicar, senao os pods ficam em
-# ImagePullBackOff apontando para o ECR da conta anterior.
 ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 sed -i -E "s|[0-9]{12}\.dkr\.ecr\.|${ACCOUNT}.dkr.ecr.|g" k8s/0[1-5]-*.yaml
 echo "imagens apontando para ${ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com"

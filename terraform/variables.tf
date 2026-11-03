@@ -20,8 +20,6 @@ variable "lab_role_name" {
   default     = "LabRole"
 }
 
-# ---------- Rede ----------
-
 variable "vpc_cidr" {
   type    = string
   default = "10.0.0.0/16"
@@ -37,8 +35,6 @@ variable "nodes_in_private_subnets" {
   type        = bool
   default     = true
 }
-
-# ---------- EKS ----------
 
 variable "cluster_name" {
   type    = string
@@ -74,8 +70,6 @@ variable "node_max_size" {
   type    = number
   default = 4
 }
-
-# ---------- Dados ----------
 
 variable "db_instance_class" {
   type    = string

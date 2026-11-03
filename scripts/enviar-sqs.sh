@@ -1,11 +1,4 @@
 #!/bin/bash
-# Envia mensagens MANUALMENTE para a fila SQS.
-#
-# O PDF (pag. 9) pede explicitamente: "Envie manualmente varias mensagens para a
-# fila SQS" e depois "Mostre o HPA do analytics-service detectando a carga".
-# Este script cobre esse item — e independe do evaluation-service.
-#
-# Uso:  bash scripts/enviar-sqs.sh [QUANTIDADE]     (padrao: 500)
 set -uo pipefail
 export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH"
 
@@ -15,7 +8,6 @@ QURL=$(aws sqs get-queue-url --queue-name togglemaster-events --region $REGION -
 echo "fila:  $QURL"
 echo "envio: $TOTAL mensagens (lotes de 10)"
 
-# O analytics-service espera um Body JSON com: user_id, flag_name, result, timestamp
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 enviadas=0
 lote=$(( (TOTAL + 9) / 10 ))

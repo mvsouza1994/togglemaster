@@ -5,7 +5,6 @@ metadata:
   namespace: flags
 data:
   PORT: "8002"
-  # DNS interno do cluster, cruzando namespace
   AUTH_SERVICE_URL: "http://auth-service.auth.svc.cluster.local:8001"
 ---
 apiVersion: apps/v1

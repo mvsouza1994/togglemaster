@@ -1,5 +1,3 @@
-# Cria/atualiza o schema do banco antes de cada sync (hook PreSync do ArgoCD).
-# O SQL e idempotente (CREATE ... IF NOT EXISTS), entao rodar de novo nao quebra nada.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -17,7 +15,7 @@ spec:
       restartPolicy: OnFailure
       securityContext:
         runAsNonRoot: true
-        runAsUser: 70 # usuario postgres da imagem alpine
+        runAsUser: 70
         seccompProfile:
           type: RuntimeDefault
       containers:

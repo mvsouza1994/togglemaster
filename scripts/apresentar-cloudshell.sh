@@ -1,22 +1,9 @@
 #!/bin/bash
-# APRESENTACAO PELO AWS CLOUDSHELL — self-contained.
-#
-# Sobe UM arquivo para o CloudShell (Actions > Upload file) e roda:
-#   bash apresentar-cloudshell.sh
-#
-# Faz tudo sozinho: instala o kubectl, configura o kubeconfig, descobre a URL do
-# NLB e a API key lendo do proprio cluster, gera carga, envia ao SQS e le o
-# DynamoDB. Nao depende de nenhum outro arquivo.
-#
-# NAO cobre o bloco B (os 9 conteineres do docker compose) — isso e impossivel
-# no CloudShell, que roda na AWS e nao enxerga o Docker da sua maquina. Faca o
-# bloco B antes, no Git Bash local, e depois venha para ca.
 set -uo pipefail
 
 REGION="${AWS_REGION:-us-east-1}"
 CLUSTER="${CLUSTER:-togglemaster}"
 
-# ---------- aparencia ----------
 B=$'\e[1m'; D=$'\e[2m'; R=$'\e[0m'
 CY=$'\e[36m'; YL=$'\e[33m'; GR=$'\e[32m'; MG=$'\e[35m'
 
@@ -35,7 +22,7 @@ fala() {
   echo "${YL}${B}  ╰────────────────────────────────────────────────────────────────${R}"
 }
 
-console() {  # console <titulo> <passos separados por |>
+console() {
   echo ""
   echo "${MG}${B}  ╭─ MOSTRE NO CONSOLE ────────────────────────────────────────────${R}"
   echo "${MG}  │${R}  ${B}$1${R}"
@@ -55,9 +42,6 @@ pausa() { echo ""; read -rp "  ${D}[Enter para executar]${R} " _; echo ""; }
 roda()  { echo "${GR}  \$ $*${R}"; echo ""; "$@"; echo ""; }
 roda_sh(){ echo "${GR}  \$ $1${R}"; echo ""; eval "$1"; echo ""; }
 
-# ════════════════════════════════════════════════════════════════════
-# PREPARO — rode isto ANTES de ligar a gravacao
-# ════════════════════════════════════════════════════════════════════
 clear
 echo ""
 echo "${B}  ToggleMaster — apresentacao pelo AWS CloudShell${R}"
@@ -98,7 +82,6 @@ echo "  ${GR}  bash /c/Users/enzoo/Desktop/POSTECH/scripts/apresentar.sh${R}"
 echo "  ${D}  (rode so ate o fim do bloco B e volte para ca)${R}"
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco A "0:00 – 2:30" "Arquitetura e os 3 data stores"
 echo "  ${D}Sem terminal. Mostre o diagrama do README.md e fale.${R}"
 fala "O ToggleMaster era um monolito na Fase 1. Aqui ele virou 5 microsservicos:
@@ -125,7 +108,6 @@ mil eventos em poucos minutos. Um db.t3.micro nao aguentaria; o DynamoDB
 on-demand escala sozinho."
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco C "4:30 – 7:30" "Console AWS — a infraestrutura provisionada"
 echo "  ${D}Este bloco e todo visual. Maximize o console e deixe o CloudShell${R}"
 echo "  ${D}minimizado no rodape — voce volta pra ca no bloco D.${R}"
@@ -161,7 +143,6 @@ console "DynamoDB — a tabela de eventos" \
 echo "  ${D}Agora reabra o CloudShell no rodape do console.${R}"
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco D "7:30 – 9:00" "Os 5 microsservicos como Pods"
 fala "Agora pelo terminal. Este e o AWS CloudShell, rodando dentro do proprio
 console — ja autenticado com as credenciais da conta, sem configurar nada."
@@ -187,7 +168,6 @@ echo "  ${D}Quer mostrar um manifesto? Este e o HPA, com a justificativa nos com
 pausa
 roda_sh "kubectl get hpa evaluation-hpa -n evaluation -o yaml | head -30"
 
-# ════════════════════════════════════════════════════════════════════
 bloco E "9:00 – 10:30" "Ingress funcionando — curl no Load Balancer"
 fala "Essas chamadas vao para o DNS do Network Load Balancer. O roteamento por path e
 do Ingress: /flags vai para o flag-service, /rules para o targeting-service,
@@ -209,7 +189,6 @@ for u in user-123 user-456 user-789 user-abc user-def user-ghi; do
 done
 echo ""
 
-# ════════════════════════════════════════════════════════════════════
 bloco F "10:30 – 14:00" "Carga no evaluation-service e o HPA escalando"
 echo "  ${D}Estado inicial (tem que estar em 1 replica):${R}"; echo ""
 kubectl get hpa -A
@@ -280,7 +259,6 @@ echo "  ${D}derrubando o gerador de carga...${R}"
 kubectl delete deployment loadgen -n evaluation >/dev/null 2>&1
 echo "  ok"
 
-# ════════════════════════════════════════════════════════════════════
 bloco G "14:00 – 17:00" "SQS manual, analytics escalando e DynamoDB"
 fala "Alem da carga HTTP, o enunciado pede o envio manual de mensagens para o SQS.
 Vou publicar mensagens em lotes de 10, direto pela API da fila, sem passar pelo
@@ -333,7 +311,6 @@ roda_sh "aws dynamodb scan --table-name ToggleMasterAnalytics --region $REGION -
 console "Os dados manuais aparecendo na tabela" \
 "Volte na aba do ${B}DynamoDB → ToggleMasterAnalytics → Explorar itens${R}|Aperte ${B}Executar${R} de novo|Em ${B}Filtros${R}: atributo ${B}user_id${R}, tipo ${B}String${R}, condicao ${B}Comeca com${R}, valor ${B}manual-user${R}|Aperte ${B}Executar${R}|${YL}Fale: estes sao os que eu publiquei na mao na fila, ha um minuto.${R}|Opcional: aba ${B}Monitorar${R} → grafico de ${B}Solicitacoes de gravacao${R} com o pico"
 
-# ════════════════════════════════════════════════════════════════════
 bloco H "17:00 – 19:00" "Desafios e justificativa da escalabilidade"
 echo "  ${D}Sem terminal. Fale olhando para a camera — 4 pontos.${R}"
 fala "1 — O codigo-fonte nao compilava.
@@ -369,7 +346,6 @@ CPU e um proxy indireto; se o consumo fosse limitado por I/O o sinal seria fraco
 E nao ha escala a zero."
 pausa
 
-# ════════════════════════════════════════════════════════════════════
 bloco I "19:00 – 20:00" "Fechamento"
 fala "Recapitulando: 5 microsservicos conteinerizados com build multi-stage,
 infraestrutura provisionada na AWS com EKS, ECR, 3 RDS, ElastiCache, DynamoDB e

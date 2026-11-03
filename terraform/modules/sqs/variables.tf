@@ -10,7 +10,7 @@ variable "visibility_timeout_seconds" {
 
 variable "message_retention_seconds" {
   type    = number
-  default = 345600 # 4 dias
+  default = 345600
 }
 
 variable "max_receive_count" {

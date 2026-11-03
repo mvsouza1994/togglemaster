@@ -36,11 +36,8 @@ spec:
                 name: analytics-config
             - secretRef:
                 name: analytics-secrets
-            # Fallback do Academy: credenciais temporarias do lab.
-            # Gerado por scripts/gen-aws-creds-secret.sh (nao versionado).
             - secretRef:
                 name: aws-creds
-          # No cluster o DynamoDB e o real (sem AWS_ENDPOINT_URL_DYNAMODB).
           resources:
             requests:
               cpu: 100m

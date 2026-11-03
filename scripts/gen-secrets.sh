@@ -1,11 +1,4 @@
 #!/bin/bash
-# Gera k8s/secrets.yaml com todos os valores em base64 (exigencia do enunciado).
-# Os endpoints sao lidos da AWS na hora -> nada fica hardcoded no repositorio.
-#
-# Uso:  ./scripts/gen-secrets.sh <SERVICE_API_KEY>
-#
-# NOTA: nenhuma credencial da AWS (access key / session token) entra aqui.
-# Os pods herdam a LabRole do no via IMDS.
 set -euo pipefail
 
 SERVICE_API_KEY="${1:-PREENCHER}"

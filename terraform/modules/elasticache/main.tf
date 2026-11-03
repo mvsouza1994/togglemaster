@@ -1,5 +1,3 @@
-# ElastiCache Redis (cache do evaluation-service). Um unico node, em subnet privada.
-
 resource "aws_elasticache_subnet_group" "this" {
   name       = "${var.name}-cache-subnets"
   subnet_ids = var.subnet_ids
@@ -16,7 +14,6 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "redis" {
-  # count (e nao for_each): o ID do SG so existe apos o apply, mas o tamanho da lista e conhecido no plan
   count = length(var.allowed_security_group_ids)
 
   security_group_id            = aws_security_group.this.id

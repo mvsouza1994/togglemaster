@@ -37,10 +37,6 @@ spec:
                 name: evaluation-config
             - secretRef:
                 name: evaluation-secrets
-            # Fallback do Academy: credenciais temporarias do lab.
-            # Gerado por scripts/gen-aws-creds-secret.sh (nao versionado).
-            # O ideal seria herdar a LabRole do no via IMDS, mas o managed node
-            # group usa HttpPutResponseHopLimit=1 e o pod nao alcanca o metadata.
             - secretRef:
                 name: aws-creds
           resources:

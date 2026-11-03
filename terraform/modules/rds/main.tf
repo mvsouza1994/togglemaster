@@ -1,7 +1,3 @@
-# Instancias RDS PostgreSQL (uma por servico: auth, flags, targeting).
-# Senhas geradas aqui (random_password) e guardadas no Secrets Manager.
-# Nenhuma credencial fica em arquivo do git: elas so existem no state (bucket S3 privado e criptografado).
-
 resource "aws_db_subnet_group" "this" {
   name       = "${var.name}-db-subnets"
   subnet_ids = var.subnet_ids
@@ -18,7 +14,6 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "postgres" {
-  # count (e nao for_each): o ID do SG so existe apos o apply, mas o tamanho da lista e conhecido no plan
   count = length(var.allowed_security_group_ids)
 
   security_group_id            = aws_security_group.this.id
@@ -33,7 +28,7 @@ resource "random_password" "db" {
   for_each = var.databases
 
   length  = 32
-  special = false # evita caracteres que quebram a DATABASE_URL
+  special = false
 }
 
 resource "aws_db_instance" "this" {
@@ -57,7 +52,6 @@ resource "aws_db_instance" "this" {
   publicly_accessible    = false
   multi_az               = false
 
-  # Ambiente de lab: sem backup e sem snapshot final para o destroy ser rapido.
   backup_retention_period = 0
   skip_final_snapshot     = true
   deletion_protection     = false
@@ -68,14 +62,12 @@ resource "aws_db_instance" "this" {
   tags = merge(var.tags, { Service = each.key })
 }
 
-# Um secret por banco, no formato que os servicos consomem (DATABASE_URL).
 resource "aws_secretsmanager_secret" "db" {
   for_each = var.databases
 
   name        = "${var.name}/${each.key}-db"
   description = "Credenciais do PostgreSQL do ${each.key}-service"
 
-  # Sem janela de recuperacao: permite destroy + apply seguidos com o mesmo nome.
   recovery_window_in_days = 0
 
   tags = var.tags

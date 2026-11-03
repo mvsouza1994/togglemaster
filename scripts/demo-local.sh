@@ -1,8 +1,4 @@
 #!/bin/bash
-# DEMO PARA O VIDEO - Etapa 1: ambiente local (9 conteineres) + fluxo E2E.
-# Mostra cada comando na tela ANTES de executar, para a camera acompanhar.
-#
-# Rode 'bash scripts/preparar-local.sh' UMA VEZ antes de gravar.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH"

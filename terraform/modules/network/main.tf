@@ -1,5 +1,3 @@
-# VPC propria com subnets publicas (load balancers, NAT) e privadas (nodes EKS, RDS, Redis).
-
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -11,7 +9,7 @@ locals {
 resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
-  enable_dns_hostnames = true # exigido pelo EKS e pelos endpoints do RDS/ElastiCache
+  enable_dns_hostnames = true
 
   tags = merge(var.tags, { Name = "${var.name}-vpc" })
 }
@@ -22,10 +20,6 @@ resource "aws_internet_gateway" "this" {
   tags = merge(var.tags, { Name = "${var.name}-igw" })
 }
 
-# ---------- Subnets ----------
-
-# Publicas: 10.0.0.0/20, 10.0.16.0/20, ...
-# IP publico e intencional: aqui ficam so o NAT e os load balancers.
 #trivy:ignore:AWS-0164
 resource "aws_subnet" "public" {
   count = var.az_count
@@ -36,14 +30,12 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = merge(var.tags, {
-    Name = "${var.name}-public-${local.azs[count.index]}"
-    # O AWS Load Balancer / ingress-nginx usa esta tag para criar NLBs publicos aqui.
+    Name                                        = "${var.name}-public-${local.azs[count.index]}"
     "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   })
 }
 
-# Privadas: 10.0.128.0/20, 10.0.144.0/20, ...
 resource "aws_subnet" "private" {
   count = var.az_count
 
@@ -57,9 +49,6 @@ resource "aws_subnet" "private" {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   })
 }
-
-# ---------- NAT Gateway (saida para a internet das subnets privadas) ----------
-# Um unico NAT para economizar creditos do lab (em producao: um por AZ).
 
 resource "aws_eip" "nat" {
   count  = var.enable_nat_gateway ? 1 : 0
@@ -78,8 +67,6 @@ resource "aws_nat_gateway" "this" {
 
   depends_on = [aws_internet_gateway.this]
 }
-
-# ---------- Route tables ----------
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id

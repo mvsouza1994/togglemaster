@@ -1,6 +1,4 @@
 #!/bin/bash
-# DEMO PARA O VIDEO - Etapa 2: cluster EKS, pods, ingress e fluxo E2E na nuvem.
-# NLB e SERVICE_API_KEY sao descobertos em tempo de execucao (nada hardcoded).
 set -uo pipefail
 export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH"
 

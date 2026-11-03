@@ -18,11 +18,11 @@ spec:
     namespace: evaluation
   syncPolicy:
     automated:
-      prune: true    # remove do cluster o que sair do git
-      selfHeal: true # desfaz alteracao manual (kubectl edit/apply)
+      prune: true
+      selfHeal: true
     syncOptions:
-      - CreateNamespace=true # o namespace precisa existir antes do Job PreSync
-    retry: # ex.: Secret ainda nao criado ou banco subindo
+      - CreateNamespace=true
+    retry:
       limit: 10
       backoff:
         duration: 15s

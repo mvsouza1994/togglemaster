@@ -1,10 +1,3 @@
-# Bootstrap: cria o bucket S3 que guarda o state remoto do projeto principal.
-# Roda UMA vez, com state local (o bucket ainda nao existe para guardar o proprio state).
-#
-#   cd terraform/bootstrap && terraform init && terraform apply
-#
-# Se o bucket ja existir (ex.: criado por outro membro do grupo), pule este passo.
-
 terraform {
   required_version = ">= 1.10"
 
@@ -33,7 +26,6 @@ variable "bucket_name" {
 resource "aws_s3_bucket" "state" {
   bucket = var.bucket_name
 
-  # Permite o destroy mesmo com versoes antigas do state dentro (ambiente de lab).
   force_destroy = true
 
   tags = {
@@ -42,7 +34,6 @@ resource "aws_s3_bucket" "state" {
   }
 }
 
-# Versionamento: permite recuperar um state corrompido ou apagado por engano.
 resource "aws_s3_bucket_versioning" "state" {
   bucket = aws_s3_bucket.state.id
 
@@ -51,7 +42,6 @@ resource "aws_s3_bucket_versioning" "state" {
   }
 }
 
-# SSE-S3 (AES256) e suficiente para o lab; KMS proprio teria custo por requisicao.
 #trivy:ignore:AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
   bucket = aws_s3_bucket.state.id
@@ -63,7 +53,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
   }
 }
 
-# O state contem senhas geradas: o bucket nunca pode ser publico.
 resource "aws_s3_bucket_public_access_block" "state" {
   bucket = aws_s3_bucket.state.id
 

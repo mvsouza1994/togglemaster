@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.10" # use_lockfile no backend S3 exige 1.10+
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
@@ -12,8 +12,6 @@ terraform {
     }
   }
 
-  # State remoto no S3. O bucket e criado antes por terraform/bootstrap.
-  # use_lockfile cria um .tflock no proprio bucket (lock nativo, sem DynamoDB).
   backend "s3" {
     bucket       = "fiap-bucket-state-tf-grupo3"
     key          = "togglemaster/terraform.tfstate"

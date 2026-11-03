@@ -1,9 +1,3 @@
-# Cluster EKS + node group gerenciado.
-# AWS Academy: nao e permitido criar IAM. Cluster e nodes usam a LabRole existente (role_arn).
-
-# Excecoes aceitas no lab (documentadas no README):
-# - endpoint publico: kubectl e demo a partir da maquina do grupo (restrinja com public_access_cidrs)
-# - sem criptografia de secrets com KMS proprio: evita custo/gestao de chave no Academy
 #trivy:ignore:AWS-0039
 #trivy:ignore:AWS-0040
 #trivy:ignore:AWS-0041
@@ -20,12 +14,10 @@ resource "aws_eks_cluster" "this" {
   }
 
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
-    # Quem roda o apply (a sessao da LabRole) vira admin do cluster.
+    authentication_mode                         = "API_AND_CONFIG_MAP"
     bootstrap_cluster_creator_admin_permissions = true
   }
 
-  # STANDARD evita a cobranca de "extended support" (US$ 0,60/h) em versoes antigas.
   upgrade_policy {
     support_type = "STANDARD"
   }
@@ -35,15 +27,12 @@ resource "aws_eks_cluster" "this" {
   tags = var.tags
 }
 
-# Launch template do node group.
-# hop limit 2 permite que os PODS alcancem o IMDS do node e usem as credenciais da LabRole
-# (SQS / DynamoDB) sem Secret com access key. Resolve o "aws-creds" da Fase 2, que expirava.
 resource "aws_launch_template" "nodes" {
   name_prefix = "${var.cluster_name}-nodes-"
 
   metadata_options {
     http_endpoint               = "enabled"
-    http_tokens                 = "required" # IMDSv2
+    http_tokens                 = "required"
     http_put_response_hop_limit = 2
   }
 
@@ -72,7 +61,6 @@ resource "aws_eks_node_group" "this" {
   node_role_arn   = var.role_arn
   subnet_ids      = var.node_subnet_ids
 
-  # nodes acompanham a versao do cluster (sem isso ficam na versao antiga apos upgrade)
   version = aws_eks_cluster.this.version
 
   ami_type       = "AL2023_x86_64_STANDARD"
@@ -96,7 +84,6 @@ resource "aws_eks_node_group" "this" {
 
   tags = var.tags
 
-  # O cluster autoscaler / HPA podem mudar o desired_size; o Terraform nao deve brigar com isso.
   lifecycle {
     ignore_changes = [scaling_config[0].desired_size]
   }

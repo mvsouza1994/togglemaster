@@ -1,8 +1,4 @@
 #!/bin/bash
-# Deixa o ambiente local pronto para gravar. Rode UMA VEZ antes de ligar a camera.
-#   - sobe os 9 conteineres
-#   - cria a tabela no DynamoDB Local (o container e -inMemory, some a cada subida)
-#   - cria uma SERVICE_API_KEY nova no auth-service e injeta no evaluation
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export PATH="/c/Program Files/Amazon/AWSCLIV2:$PATH"

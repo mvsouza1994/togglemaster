@@ -1,5 +1,3 @@
-# ingress-nginx via Helm (antes era kubectl apply no deploy.sh).
-# Cria um NLB na AWS: apague esta Application antes do terraform destroy.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

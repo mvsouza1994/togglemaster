@@ -12,8 +12,6 @@ labels:
       app.kubernetes.io/part-of: togglemaster
       app.kubernetes.io/name: auth-service
 
-# SQL do schema (copia de services/auth-service/db/init.sql) para o Job de migracao.
-# Tambem e hook PreSync, com wave menor, para existir antes do Job.
 configMapGenerator:
   - name: auth-db-schema
     namespace: auth

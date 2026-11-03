@@ -1,10 +1,4 @@
 #!/bin/bash
-# Copia as credenciais do AWS Academy de um perfil do ~/.aws/credentials para os
-# secrets do repositorio no GitHub (usados pelos workflows). Nada e impresso na tela.
-#
-# Uso (a cada Start Lab, depois de colar o bloco "AWS CLI" no [default]):
-#   bash scripts/gh-aws-secrets.sh            # perfil default
-#   bash scripts/gh-aws-secrets.sh outro-perfil
 set -euo pipefail
 PROFILE="${1:-default}"
 

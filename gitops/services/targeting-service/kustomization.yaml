@@ -12,8 +12,6 @@ labels:
       app.kubernetes.io/part-of: togglemaster
       app.kubernetes.io/name: targeting-service
 
-# SQL do schema (copia de services/targeting-service/db/init.sql) para o Job de migracao.
-# Tambem e hook PreSync, com wave menor, para existir antes do Job.
 configMapGenerator:
   - name: targeting-db-schema
     namespace: targeting

@@ -24,7 +24,6 @@ spec:
           type: RuntimeDefault
       containers:
         - name: flag-service
-          # A tag e atualizada pelo CI a cada push na main (v1.0.0-<sha>).
           image: ghcr.io/mvsouza1994/togglemaster/flag-service:v1.0.0-e6fbfa9
           imagePullPolicy: IfNotPresent
           ports:
@@ -32,7 +31,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: flag-config
-            # Secret criado fora do git (Terraform / scripts/k8s-secrets.sh)
             - secretRef:
                 name: flag-secrets
           resources:

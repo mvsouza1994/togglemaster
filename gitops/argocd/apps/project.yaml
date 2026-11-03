@@ -1,5 +1,3 @@
-# Projeto dos microsservicos: so pode ler este repositorio e so pode criar
-# recursos nos 5 namespaces da aplicacao.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:

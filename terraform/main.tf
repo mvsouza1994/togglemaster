@@ -1,6 +1,3 @@
-# ToggleMaster - infraestrutura completa (Fase 3).
-# Cada bloco abaixo e um modulo independente em ./modules.
-
 locals {
   tags = {
     Project     = var.project
@@ -9,8 +6,6 @@ locals {
   }
 }
 
-# AWS Academy: nao podemos criar IAM. Lemos a LabRole que ja existe na conta
-# e usamos no cluster e nos nodes. Nenhum aws_iam_role/aws_iam_policy neste projeto.
 data "aws_iam_role" "lab" {
   name = var.lab_role_name
 }

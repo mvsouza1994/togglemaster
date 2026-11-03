@@ -1,16 +1,4 @@
 #!/bin/bash
-# FALLBACK do AWS Academy: injeta as credenciais temporarias do lab como Secret.
-#
-# Por que existe: no EKS os pods deveriam herdar a LabRole do no via IMDS, mas o
-# managed node group sobe as instancias com HttpPutResponseHopLimit=1 e o pod fica
-# a 2 hops do metadata service -> "Unable to locate credentials". A correcao limpa
-# seria subir o hop limit para 2 (ec2 modify-instance-metadata-options); este script
-# e a alternativa quando essa alteracao nao esta disponivel.
-#
-# ATENCAO: as credenciais do Learner Lab expiram a cada sessao (~4h).
-# Rode este script de novo (e reinicie os deployments) a cada 'Start Lab'.
-#
-# Os valores NUNCA sao impressos: vao do arquivo direto para o kubectl.
 set -euo pipefail
 
 CRED_FILE="${AWS_CREDENTIALS_FILE:-$HOME/.aws/credentials}"

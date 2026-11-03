@@ -1,9 +1,4 @@
 #!/bin/bash
-# Destroi TODOS os recursos AWS do ToggleMaster.
-#
-# A ORDEM IMPORTA: o Service LoadBalancer do ingress-nginx precisa sair ANTES do
-# cluster. Se o cluster for deletado primeiro, o NLB fica orfao consumindo o
-# orcamento do lab e so da pra achar vasculhando o console de EC2.
 set -uo pipefail
 
 REGION=us-east-1

@@ -1,7 +1,3 @@
-# Um Ingress por namespace (o backend Service e um objeto namespaced).
-# Todos usam a mesma ingressClass "nginx" -> mesmo NLB.
-
-# /auth/... -> auth-service (precisa de rewrite: as rotas da app sao /validate, /admin/keys)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -22,7 +18,6 @@ spec:
                 port:
                   number: 8001
 ---
-# /flags -> flag-service (a rota da app ja e /flags, sem rewrite)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -41,7 +36,6 @@ spec:
                 port:
                   number: 8002
 ---
-# /rules -> targeting-service
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -60,7 +54,6 @@ spec:
                 port:
                   number: 8003
 ---
-# /evaluate -> evaluation-service
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -79,7 +72,6 @@ spec:
                 port:
                   number: 8004
 ---
-# /analytics/... -> analytics-service (so o /health; o servico e um worker de fila)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

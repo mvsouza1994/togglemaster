@@ -1,5 +1,3 @@
-# Workflow reutilizavel para os servicos em Go (auth, evaluation).
-# Etapas encadeadas: build + testes -> lint -> seguranca (SAST + SCA).
 name: _ci-go
 
 on:
@@ -25,8 +23,8 @@ jobs:
       run:
         working-directory: services/${{ inputs.service }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: services/${{ inputs.service }}/go.mod
           cache-dependency-path: services/${{ inputs.service }}/go.sum
@@ -42,8 +40,8 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: services/${{ inputs.service }}/go.mod
           cache-dependency-path: services/${{ inputs.service }}/go.sum
@@ -51,7 +49,7 @@ jobs:
         working-directory: services/${{ inputs.service }}
         run: go vet ./...
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: services/${{ inputs.service }}
@@ -61,15 +59,13 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: services/${{ inputs.service }}/go.mod
           cache-dependency-path: services/${{ inputs.service }}/go.sum
-      # gosec rodando pelo golangci-lint: o binario avulso do gosec (v2.29) ainda nao
-      # le o formato de pacotes do Go 1.27. As regras (e a exclusao do G706) vem do .golangci.yml.
       - name: SAST - gosec
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: services/${{ inputs.service }}
