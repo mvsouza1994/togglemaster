@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: auth-service
-          image: ghcr.io/mvsouza1994/togglemaster/auth-service:v1.0.0-731df3f
+          image: ghcr.io/mvsouza1994/togglemaster/auth-service:v1.0.0-f806430
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8001
